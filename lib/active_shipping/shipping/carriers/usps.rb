@@ -541,8 +541,10 @@ module ActiveMerchant
             timestamp = nil
             description = nil
             if event.get_text.to_s =~ /^(.*), (\w+ \d{1,2}, \d{4}, \d{1,2}:\d\d [ap]m), (.*), (\w\w) (\d{5})$/i ||
-                event.get_text.to_s =~ /^Your item \w{2,3} (out for delivery|delivered) at (\d{1,2}:\d\d [ap]m on \w+ \d{1,2}, \d{4}) in (.*), (\w\w) (\d{5})\.$/i
-              description = $1.upcase
+              event.get_text.to_s =~ /^Your item \w{2,3} (out for delivery|delivered) at (\d{1,2}:\d\d [ap]m on \w+ \d{1,2}, \d{4}) in (.*), (\w\w) (\d{5})\.$/i ||
+              event.get_text.to_s =~ /^A (shipping label has been prepared) for your item at (\d{1,2}:\d\d [ap]m on \w+ \d{1,2}, \d{4}) in (.*), (\w\w) (\d{5})\.$/i
+
+              description = $1=="shipping label has been prepared" ? "SHIPPING LABEL CREATED" : $1.upcase
               timestamp   = $2
               city        = $3
               state       = $4
