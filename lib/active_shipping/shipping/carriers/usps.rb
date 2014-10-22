@@ -34,7 +34,8 @@ module ActiveMerchant
         :test => 'CarrierPickupAvailability',
         :track => 'TrackV2',
         :merchandise_return => "MerchandiseReturnV4",
-        :address_validation => "Verify"
+        :address_validation => "Verify",
+        :city_state_lookup => "CityStateLookup"
       }
       USE_SSL = {
         :us_rates => false,
@@ -42,7 +43,8 @@ module ActiveMerchant
         :test => true,
         :track => false,
         :merchandise_return => true,
-        :address_validation => true
+        :address_validation => true,
+        :city_state_lookup => false
       }
       CONTAINERS = {
         :envelope => 'Flat Rate Envelope',
@@ -201,6 +203,13 @@ module ActiveMerchant
         self.class::AddressValidation.new(response)
       end
 
+      def get_city_state_lookup(zip5)
+        zip5 = zip5.to_s[/^\d{5}$/] || raise(ArgumentError.new("#{zip5} doesn't match a 5 digit number"))
+        login = @options.fetch(:login)
+        response = commit(:city_state_lookup, build_city_state_lookup_request(login, zip5))
+        self.class::CityStateLookup.new(response)
+      end
+
       protected
 
       def build_tracking_request(tracking_number, options={})
@@ -263,6 +272,15 @@ module ActiveMerchant
             address_xml << XmlNode.new("State", options[:region] || options[:state])
             address_xml << XmlNode.new("Zip5", options[:zip] || options[:postal_code])
             address_xml << XmlNode.new("Zip4", "")
+          end
+        end
+        URI.encode(xml_request.to_s)
+      end
+
+      def build_city_state_lookup_request(login, zip5)
+        xml_request = XmlNode.new('CityStateLookupRequest', 'USERID' => login) do |request|
+          request << XmlNode.new('ZipCode', 'ID' => "0") do |zip_code_xml|
+            zip_code_xml << XmlNode.new('Zip5', zip5)
           end
         end
         URI.encode(xml_request.to_s)
@@ -648,7 +666,33 @@ module ActiveMerchant
         def zip
           @doc.get_text('//Address/Zip5').to_s
         end
-      end
+      end # AddressValidation
+
+      class CityStateLookup
+        def initialize(xml)
+          @doc = REXML::Document.new(xml)
+        end
+
+        def error
+          @doc.get_text('//Error/Description').to_s
+        end
+
+        def valid?
+          error.blank?
+        end
+
+        def zip5
+          @doc.get_text("//ZipCode/Zip5").to_s
+        end
+
+        def city
+          @doc.get_text("//ZipCode/City").to_s
+        end
+
+        def state
+          @doc.get_text("//ZipCode/State").to_s
+        end
+      end # CityStateLookup
 
     end
   end
