@@ -58,6 +58,16 @@ class UPSTest < Test::Unit::TestCase
     assert_equal 'K1N5X8', response.shipment_events.last.location.postal_code
   end
 
+  def test_response_parsing_for_activity_without_location
+    tracking_response = xml_fixture('ups/first_activity_without_location')
+    @carrier.expects(:commit).returns(tracking_response)
+    response = @carrier.find_tracking_info('1Z2789781390037999')
+    assert_equal nil, response.shipment_events.first.location
+    location = response.shipment_events.last.location
+    assert_equal '68105', location.postal_code
+    assert_equal 'OMAHA', location.city
+  end
+
   def test_response_parsing
     mock_response = xml_fixture('ups/test_real_home_as_residential_destination_response')
     @carrier.expects(:commit).returns(mock_response)

@@ -378,12 +378,14 @@ module ActiveMerchant
             shipment_events = shipment_events.sort_by(&:time)
 
             if origin
-              first_event = shipment_events[0]
+              index = -1
+              first_event = shipment_events.detect { |event| index +=1; event.location }
               same_country = origin.country_code(:alpha2) == first_event.location.country_code(:alpha2)
               same_or_blank_city = first_event.location.city.blank? or first_event.location.city == origin.city
               origin_event = ShipmentEvent.new(first_event.name, first_event.time, origin)
+
               if same_country and same_or_blank_city
-                shipment_events[0] = origin_event
+                shipment_events[index] = origin_event
               else
                 shipment_events.unshift(origin_event)
               end
