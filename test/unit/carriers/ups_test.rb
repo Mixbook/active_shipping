@@ -75,8 +75,8 @@ class UPSTest < Test::Unit::TestCase
                                     @locations[:real_home_as_residential],
                                     @packages.values_at(:chocolate_stuff))
     assert_equal [ "UPS Ground",
-                   "UPS Three-Day Select",
-                   "UPS Second Day Air",
+                   "UPS 3 Day Select",
+                   "UPS 2nd Day Air",
                    "UPS Next Day Air Saver",
                    "UPS Next Day Air Early A.M.",
                    "UPS Next Day Air"], response.rates.map(&:service_name)

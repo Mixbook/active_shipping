@@ -48,12 +48,12 @@ module ActiveMerchant
 
       DEFAULT_SERVICES = {
         "01" => "UPS Next Day Air",
-        "02" => "UPS Second Day Air",
+        "02" => "UPS 2nd Day Air",
         "03" => "UPS Ground",
         "07" => "UPS Worldwide Express",
         "08" => "UPS Worldwide Expedited",
         "11" => "UPS Standard",
-        "12" => "UPS Three-Day Select",
+        "12" => "UPS 3 Day Select",
         "13" => "UPS Next Day Air Saver",
         "14" => "UPS Next Day Air Early A.M.",
         "54" => "UPS Worldwide Express Plus",
