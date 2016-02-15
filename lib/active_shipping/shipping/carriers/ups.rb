@@ -4,36 +4,36 @@ module ActiveMerchant
   module Shipping
     class UPS < Carrier
       self.retry_safe = true
-      
+
       cattr_accessor :default_options
       cattr_reader :name
       @@name = "UPS"
-      
+
       TEST_URL = 'https://wwwcie.ups.com'
       LIVE_URL = 'https://onlinetools.ups.com'
-      
+
       RESOURCES = {
         :rates           => 'ups.app/xml/Rate',
         :track           => 'ups.app/xml/Track',
         :time_in_transit => 'ups.app/xml/TimeInTransit'
       }
-      
+
       PICKUP_CODES = HashWithIndifferentAccess.new({
         :daily_pickup => "01",
-        :customer_counter => "03", 
+        :customer_counter => "03",
         :one_time_pickup => "06",
         :on_call_air => "07",
         :suggested_retail_rates => "11",
         :letter_center => "19",
         :air_service_center => "20"
       })
-      
+
       CUSTOMER_CLASSIFICATIONS = HashWithIndifferentAccess.new({
         :wholesale => "01",
-        :occasional => "03", 
+        :occasional => "03",
         :retail => "04"
       })
-      
+
       # these are the defaults described in the UPS API docs,
       # but they don't seem to apply them under all circumstances,
       # so we need to take matters into our own hands
@@ -45,7 +45,7 @@ module ActiveMerchant
           :occasional
         end
       end
-      
+
       DEFAULT_SERVICES = {
         "01" => "UPS Next Day Air",
         "02" => "UPS 2nd Day Air",
@@ -65,37 +65,37 @@ module ActiveMerchant
         "85" => "UPS Today Express",
         "86" => "UPS Today Express Saver"
       }
-      
+
       CANADA_ORIGIN_SERVICES = {
         "01" => "UPS Express",
         "02" => "UPS Expedited",
         "14" => "UPS Express Early A.M."
       }
-      
+
       MEXICO_ORIGIN_SERVICES = {
         "07" => "UPS Express",
         "08" => "UPS Expedited",
         "54" => "UPS Express Plus"
       }
-      
+
       EU_ORIGIN_SERVICES = {
         "07" => "UPS Express",
         "08" => "UPS Expedited"
       }
-      
+
       OTHER_NON_US_ORIGIN_SERVICES = {
         "07" => "UPS Express"
       }
-      
+
       # From http://en.wikipedia.org/w/index.php?title=European_Union&oldid=174718707 (Current as of November 30, 2007)
       EU_COUNTRY_CODES = ["GB", "AT", "BE", "BG", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE"]
-      
+
       US_TERRITORIES_TREATED_AS_COUNTRIES = ["AS", "FM", "GU", "MH", "MP", "PW", "PR", "VI"]
-      
+
       def requirements
         [:key, :login, :password]
       end
-      
+
       def find_rates(origin, destination, packages, options={})
         origin, destination = upsified_location(origin), upsified_location(destination)
         options = @options.merge(options)
@@ -105,7 +105,7 @@ module ActiveMerchant
         response = commit(:rates, save_request(access_request + rate_request), (options[:test] || false))
         parse_rate_response(origin, destination, packages, response, options)
       end
-      
+
       def find_tracking_info(tracking_number, options={})
         options = @options.merge(options)
         access_request = build_access_request
@@ -113,7 +113,7 @@ module ActiveMerchant
         response = commit(:track, save_request(access_request + tracking_request), (options[:test] || false))
         parse_tracking_response(response, options)
       end
-      
+
       def find_time_in_transit(origin, destination, pickup_date, options={})
         origin, destination = upsified_location(origin), upsified_location(destination)
         options = @options.merge(options)
@@ -124,7 +124,7 @@ module ActiveMerchant
       end
 
       protected
-      
+
       def upsified_location(location)
         if location.country_code == 'US' && US_TERRITORIES_TREATED_AS_COUNTRIES.include?(location.state)
           atts = {:country => location.state}
@@ -136,7 +136,7 @@ module ActiveMerchant
           location
         end
       end
-      
+
       def build_access_request
         xml_request = XmlNode.new('AccessRequest') do |access_request|
           access_request << XmlNode.new('AccessLicenseNumber', @options[:key])
@@ -145,7 +145,7 @@ module ActiveMerchant
         end
         xml_request.to_xml
       end
-      
+
       def build_rate_request(origin, destination, packages, options={})
         packages = Array(packages)
         xml_request = XmlNode.new('RatingServiceSelectionRequest') do |root_node|
@@ -155,9 +155,9 @@ module ActiveMerchant
             # not implemented: 'Rate' RequestOption to specify a single service query
             # request << XmlNode.new('RequestOption', ((options[:service].nil? or options[:service] == :all) ? 'Shop' : 'Rate'))
           end
-          
+
           pickup_type = options[:pickup_type] || :daily_pickup
-          
+
           root_node << XmlNode.new('PickupType') do |pickup_type_node|
             pickup_type_node << XmlNode.new('Code', PICKUP_CODES[pickup_type])
             # not implemented: PickupType/PickupDetails element
@@ -166,7 +166,7 @@ module ActiveMerchant
           root_node << XmlNode.new('CustomerClassification') do |cc_node|
             cc_node << XmlNode.new('Code', CUSTOMER_CLASSIFICATIONS[cc])
           end
-          
+
           root_node << XmlNode.new('Shipment') do |shipment|
             # not implemented: Shipment/Description element
             shipment << build_location_node('Shipper', (options[:shipper] || origin), options)
@@ -174,28 +174,28 @@ module ActiveMerchant
             if options[:shipper] and options[:shipper] != origin
               shipment << build_location_node('ShipFrom', origin, options)
             end
-            
+
             # not implemented:  * Shipment/ShipmentWeight element
-            #                   * Shipment/ReferenceNumber element                    
-            #                   * Shipment/Service element                            
-            #                   * Shipment/PickupDate element                         
-            #                   * Shipment/ScheduledDeliveryDate element              
-            #                   * Shipment/ScheduledDeliveryTime element              
-            #                   * Shipment/AlternateDeliveryTime element              
-            #                   * Shipment/DocumentsOnly element                      
-            
+            #                   * Shipment/ReferenceNumber element
+            #                   * Shipment/Service element
+            #                   * Shipment/PickupDate element
+            #                   * Shipment/ScheduledDeliveryDate element
+            #                   * Shipment/ScheduledDeliveryTime element
+            #                   * Shipment/AlternateDeliveryTime element
+            #                   * Shipment/DocumentsOnly element
+
             packages.each do |package|
               imperial = ['US','LR','MM'].include?(origin.country_code(:alpha2))
-              
+
               shipment << XmlNode.new("Package") do |package_node|
-                
+
                 # not implemented:  * Shipment/Package/PackagingType element
                 #                   * Shipment/Package/Description element
-                
+
                 package_node << XmlNode.new("PackagingType") do |packaging_type|
                   packaging_type << XmlNode.new("Code", '02')
                 end
-                
+
                 package_node << XmlNode.new("Dimensions") do |dimensions|
                   dimensions << XmlNode.new("UnitOfMeasurement") do |units|
                     units << XmlNode.new("Code", imperial ? 'IN' : 'CM')
@@ -205,37 +205,37 @@ module ActiveMerchant
                     dimensions << XmlNode.new(axis.to_s.capitalize, [value,0.1].max)
                   end
                 end
-              
+
                 package_node << XmlNode.new("PackageWeight") do |package_weight|
                   package_weight << XmlNode.new("UnitOfMeasurement") do |units|
                     units << XmlNode.new("Code", imperial ? 'LBS' : 'KGS')
                   end
-                  
+
                   value = ((imperial ? package.lbs : package.kgs).to_f*1000).round/1000.0 # 3 decimals
                   package_weight << XmlNode.new("Weight", [value,0.1].max)
                 end
-              
+
                 # not implemented:  * Shipment/Package/LargePackageIndicator element
                 #                   * Shipment/Package/ReferenceNumber element
                 #                   * Shipment/Package/PackageServiceOptions element
-                #                   * Shipment/Package/AdditionalHandling element  
+                #                   * Shipment/Package/AdditionalHandling element
               end
-              
+
             end
-            
+
             # not implemented:  * Shipment/ShipmentServiceOptions element
             if options[:origin_account]
               shipment << XmlNode.new("RateInformation") do |rate_info_node|
                 rate_info_node << XmlNode.new("NegotiatedRatesIndicator")
               end
             end
-            
+
           end
-          
+
         end
         xml_request.to_s
       end
-      
+
       def build_tracking_request(tracking_number, options={})
         xml_request = XmlNode.new('TrackRequest') do |root_node|
           root_node << XmlNode.new('Request') do |request|
@@ -246,7 +246,7 @@ module ActiveMerchant
         end
         xml_request.to_s
       end
-      
+
       def build_time_in_transit_request(origin, destination, pickup_date, options={})
         xml_request = XmlNode.new('TimeInTransitRequest') do |root_node|
           root_node << XmlNode.new('Request') do |request|
@@ -285,13 +285,13 @@ module ActiveMerchant
         location_node = XmlNode.new(name) do |location_node|
           location_node << XmlNode.new('PhoneNumber', location.phone.gsub(/[^\d]/,'')) unless location.phone.blank?
           location_node << XmlNode.new('FaxNumber', location.fax.gsub(/[^\d]/,'')) unless location.fax.blank?
-          
+
           if name == 'Shipper' and (origin_account = @options[:origin_account] || options[:origin_account])
             location_node << XmlNode.new('ShipperNumber', origin_account)
           elsif name == 'ShipTo' and (destination_account = @options[:destination_account] || options[:destination_account])
             location_node << XmlNode.new('ShipperAssignedIdentificationNumber', destination_account)
           end
-          
+
           location_node << XmlNode.new('Address') do |address|
             address << XmlNode.new("AddressLine1", location.address1) unless location.address1.blank?
             address << XmlNode.new("AddressLine2", location.address2) unless location.address2.blank?
@@ -306,7 +306,7 @@ module ActiveMerchant
           end
         end
       end
-      
+
       def build_address_artifact_node(location)
         XmlNode.new('AddressArtifactFormat') do |address|
           address << XmlNode.new('PoliticalDivision2', location.city) unless location.city.blank?
@@ -322,10 +322,10 @@ module ActiveMerchant
         xml = REXML::Document.new(response)
         success = response_success?(xml)
         message = response_message(xml)
-        
+
         if success
           rate_estimates = []
-          
+
           xml.elements.each('/*/RatedShipment') do |rated_shipment|
             service_code = rated_shipment.get_text('Service/Code').to_s
             days_to_delivery = rated_shipment.get_text('GuaranteedDaysToDelivery').to_s.to_i
@@ -342,24 +342,24 @@ module ActiveMerchant
         end
         RateResponse.new(success, message, Hash.from_xml(response).values.first, :rates => rate_estimates, :xml => response, :request => last_request)
       end
-      
+
       def parse_tracking_response(response, options={})
         xml = REXML::Document.new(response)
         success = response_success?(xml)
         message = response_message(xml)
-        
+
         if success
           tracking_number, origin, destination = nil
           shipment_events = []
-          
+
           first_shipment = xml.elements['/*/Shipment']
           first_package = first_shipment.elements['Package']
           tracking_number = first_shipment.get_text('ShipmentIdentificationNumber | Package/TrackingNumber').to_s
-          
+
           origin, destination = %w{Shipper ShipTo}.map do |location|
             location_from_address_node(first_shipment.elements["#{location}/Address"])
           end
-          
+
           activities = first_package.get_elements('Activity')
           unless activities.empty?
             shipment_events = activities.map do |activity|
@@ -374,16 +374,18 @@ module ActiveMerchant
               location = location_from_address_node(activity.elements['ActivityLocation/Address'])
               ShipmentEvent.new(description, zoneless_time, location)
             end
-            
+
             shipment_events = shipment_events.sort_by(&:time)
-            
+
             if origin
-              first_event = shipment_events[0]
+              index = -1
+              first_event = shipment_events.detect { |event| index +=1; event.location }
               same_country = origin.country_code(:alpha2) == first_event.location.country_code(:alpha2)
               same_or_blank_city = first_event.location.city.blank? or first_event.location.city == origin.city
               origin_event = ShipmentEvent.new(first_event.name, first_event.time, origin)
+
               if same_country and same_or_blank_city
-                shipment_events[0] = origin_event
+                shipment_events[index] = origin_event
               else
                 shipment_events.unshift(origin_event)
               end
@@ -392,7 +394,7 @@ module ActiveMerchant
               shipment_events[-1] = ShipmentEvent.new(shipment_events.last.name, shipment_events.last.time, destination)
             end
           end
-          
+
         end
         TrackingResponse.new(success, message, Hash.from_xml(response).values.first,
           :xml => response,
@@ -402,7 +404,7 @@ module ActiveMerchant
           :destination => destination,
           :tracking_number => tracking_number)
       end
-      
+
       def parse_time_in_transit_response(origin, destination, response, options={})
         xml = REXML::Document.new(response)
         success = response_success?(xml)
@@ -437,33 +439,33 @@ module ActiveMerchant
                 :address3 =>    node_text_or_nil(address.elements['AddressLine3'])
               )
       end
-      
+
       def response_success?(xml)
         xml.get_text('/*/Response/ResponseStatusCode').to_s == '1'
       end
-      
+
       def response_message(xml)
         xml.get_text('/*/Response/Error/ErrorDescription | /*/Response/ResponseStatusDescription').to_s
       end
-      
+
       def commit(action, request, test = false)
         ssl_post("#{test ? TEST_URL : LIVE_URL}/#{RESOURCES[action]}", request)
       end
-      
-      
+
+
       def service_name_for(origin, code)
         origin = origin.country_code(:alpha2)
-        
+
         name = case origin
         when "CA" then CANADA_ORIGIN_SERVICES[code]
         when "MX" then MEXICO_ORIGIN_SERVICES[code]
         when *EU_COUNTRY_CODES then EU_ORIGIN_SERVICES[code]
         end
-        
+
         name ||= OTHER_NON_US_ORIGIN_SERVICES[code] unless origin == 'US'
         name ||= DEFAULT_SERVICES[code]
       end
-      
+
     end
   end
 end
