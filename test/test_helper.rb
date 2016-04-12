@@ -6,6 +6,7 @@ require 'bundler'
 Bundler.setup
 
 require 'test/unit'
+require 'minitest/unit'
 require 'active_shipping'
 require 'mocha/setup'
 
